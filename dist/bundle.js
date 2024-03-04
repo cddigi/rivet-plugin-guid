@@ -1,20 +1,16 @@
-// src/nodes/ExamplePluginNode.ts
-function examplePluginNode(rivet) {
-  const ExamplePluginNodeImpl = {
-    // This should create a new instance of your node type from scratch.
+// src/nodes/GuidPluginNode.ts
+function guidPluginNode(rivet) {
+  const GuidPluginNodeImpl = {
     create() {
       const node = {
-        // Use rivet.newId to generate new IDs for your nodes.
         id: rivet.newId(),
-        // This is the default data that your node will store
         data: {
-          someData: "Hello World"
+          guid: "",
+          uppercase: false,
+          version: "v4"
         },
-        // This is the default title of your node.
-        title: "Example Plugin Node",
-        // This must match the type of your node.
-        type: "examplePlugin",
-        // X and Y should be set to 0. Width should be set to a reasonable number so there is no overflow.
+        title: "GUID",
+        type: "guidPlugin",
         visualData: {
           x: 0,
           y: 0,
@@ -27,11 +23,11 @@ function examplePluginNode(rivet) {
     // connection, nodes, and project are for advanced use-cases and can usually be ignored.
     getInputDefinitions(data, _connections, _nodes, _project) {
       const inputs = [];
-      if (data.useSomeDataInput) {
+      if (data.useUppercase) {
         inputs.push({
-          id: "someData",
-          dataType: "string",
-          title: "Some Data"
+          id: "uppercase",
+          dataType: "boolean",
+          title: "Uppercase"
         });
       }
       return inputs;
@@ -41,29 +37,38 @@ function examplePluginNode(rivet) {
     getOutputDefinitions(_data, _connections, _nodes, _project) {
       return [
         {
-          id: "someData",
+          id: "guid",
           dataType: "string",
-          title: "Some Data"
+          title: "GUID"
         }
       ];
     },
     // This returns UI information for your node, such as how it appears in the context menu.
     getUIData() {
       return {
-        contextMenuTitle: "Example Plugin",
-        group: "Example",
-        infoBoxBody: "This is an example plugin node.",
-        infoBoxTitle: "Example Plugin Node"
+        contextMenuTitle: "GUID",
+        group: "Text",
+        infoBoxBody: "Output a version 1 (date-time and MAC address) or 4 (random) GUID.",
+        infoBoxTitle: "GUID Plugin"
       };
     },
     // This function defines all editors that appear when you edit your node.
     getEditors(_data) {
       return [
         {
-          type: "string",
-          dataKey: "someData",
-          useInputToggleDataKey: "useSomeDataInput",
-          label: "Some Data"
+          type: "toggle",
+          dataKey: "uppercase",
+          useInputToggleDataKey: "useUppercase",
+          label: "Uppercase"
+        },
+        {
+          type: "dropdown",
+          dataKey: "version",
+          label: "Version",
+          options: [
+            { value: "v1", label: "Version 1 (date-time and MAC address)" },
+            { value: "v4", label: "Version 4 (random)" }
+          ]
         }
       ];
     },
@@ -71,66 +76,107 @@ function examplePluginNode(rivet) {
     // what the current data of the node is in some way that is useful at a glance.
     getBody(data) {
       return rivet.dedent`
-        Example Plugin Node
-        Data: ${data.useSomeDataInput ? "(Using Input)" : data.someData}
+        GUID
+        Version: ${data.version}
+        Uppercase: ${data.useUppercase ? "(Using Input)" : data.uppercase}
       `;
     },
     // This is the main processing function for your node. It can do whatever you like, but it must return
     // a valid Outputs object, which is a map of port IDs to DataValue objects. The return value of this function
     // must also correspond to the output definitions you defined in the getOutputDefinitions function.
     async process(data, inputData, _context) {
-      const someData = rivet.getInputOrData(
+      const ver = rivet.getInputOrData(data, inputData, "version", "string");
+      const upper = rivet.getInputOrData(
         data,
         inputData,
-        "someData",
-        "string"
+        "uppercase",
+        "boolean"
       );
-      return {
-        ["someData"]: {
-          type: "string",
-          value: someData
+      if (ver === "v1") {
+        const guid = generateUUIDv1();
+        if (upper) {
+          return {
+            ["guid"]: {
+              type: "string",
+              value: guid.toUpperCase()
+            }
+          };
+        } else {
+          return {
+            ["guid"]: {
+              type: "string",
+              value: guid
+            }
+          };
         }
-      };
+      } else {
+        const guid = generateUUIDv4();
+        if (upper) {
+          return {
+            ["guid"]: {
+              type: "string",
+              value: guid.toUpperCase()
+            }
+          };
+        } else {
+          return {
+            ["guid"]: {
+              type: "string",
+              value: guid
+            }
+          };
+        }
+      }
     }
   };
-  const examplePluginNode2 = rivet.pluginNodeDefinition(
-    ExamplePluginNodeImpl,
-    "Example Plugin Node"
+  const guidPluginNode2 = rivet.pluginNodeDefinition(
+    GuidPluginNodeImpl,
+    "Create GUID"
   );
-  return examplePluginNode2;
+  return guidPluginNode2;
+}
+function generateUUIDv1() {
+  const timestamp = Date.now();
+  const machineIdentifier = Math.floor(Math.random() * 16777215);
+  return `${timestamp}-${machineIdentifier}-1xxx-yxxx-xxxxxxxxxxxx`.replace(
+    /[xy]/g,
+    function(c) {
+      var r = Math.random() * 16 | 0, v = c === "x" ? r : r & 3 | 8;
+      return v.toString(16);
+    }
+  );
+}
+function generateUUIDv4() {
+  return "xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx".replace(/[xy]/g, function(c) {
+    var r = Math.random() * 16 | 0, v = c === "x" ? r : r & 3 | 8;
+    return v.toString(16);
+  });
 }
 
 // src/index.ts
 var plugin = (rivet) => {
-  const exampleNode = examplePluginNode(rivet);
-  const examplePlugin = {
+  const guidNode = guidPluginNode(rivet);
+  const guidPlugin = {
     // The ID of your plugin should be unique across all plugins.
-    id: "example-plugin",
+    id: "guid-plugin",
     // The name of the plugin is what is displayed in the Rivet UI.
-    name: "Example Plugin",
+    name: "GUID Plugin",
     // Define all configuration settings in the configSpec object.
-    configSpec: {
-      exampleSetting: {
-        type: "string",
-        label: "Example Setting",
-        description: "This is an example setting for the example plugin.",
-        helperText: "This is an example setting for the example plugin."
-      }
-    },
+    configSpec: {},
     // Define any additional context menu groups your plugin adds here.
     contextMenuGroups: [
       {
-        id: "example",
-        label: "Example"
+        id: "guid-plugin",
+        label: "GUID"
       }
     ],
     // Register any additional nodes your plugin adds here. This is passed a `register`
     // function, which you can use to register your nodes.
     register: (register) => {
-      register(exampleNode);
+      register(guidNode);
     }
   };
-  return examplePlugin;
+  return guidPlugin;
 };
 var src_default = plugin;
 export {
