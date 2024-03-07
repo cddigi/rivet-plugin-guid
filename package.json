@@ -4,9 +4,7 @@
   "version": "0.0.3",
   "type": "module",
   "main": "dist/bundle.js",
-  "files": [
-    "dist"
-  ],
+  "files": ["dist"],
   "scripts": {
     "build": "tsc -b && tsx bundle.ts",
     "dev": "run-p watch:tsc watch:esbuild:sync",
@@ -30,5 +28,12 @@
   },
   "rivet": {
     "skipInstall": true
-  }
+  },
+  "author": "Cornelius Donley <cornelius@donley.cx>",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/cddigi/rivet-plugin-guid.git"
+  },
+  "homepage": "https://github.com/cddigi/rivet-plugin-guid"
 }
